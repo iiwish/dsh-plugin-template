@@ -2,57 +2,108 @@
 
 English | [中文](README.zh.md)
 
-A minimal TypeScript [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugin bundle. It prints `hello world` when Harness loads it.
+[![dsh.so security](https://www.dsh.so/badge/dsh-plugin-template.svg)](https://www.dsh.so/artifact/dsh-plugin-template)
+[![dsh.so install](https://www.dsh.so/badge/install/dsh-plugin-template.svg)](https://www.dsh.so/artifact/dsh-plugin-template)
 
-## Start from a fork
+A complete dual-side [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugin template. It demonstrates the full plugin surface — a **host** plugin exposing a Typert Remote, and a **client** plugin mounting that Remote into a React view — with type-checking, linting, unit tests, CI, and publishing metadata wired up.
 
-```sh
-git clone https://github.com/YOUR-USER/dsh-plugin-template.git
-cd dsh-plugin-template
+Out of the box it registers a `greet` Remote: the host composes `"Hello, <name>"` from a configurable prefix, and the client renders the result in a new "Greet" tab.
 
-pnpm install
-pnpm run check
-dsh plugin --profile hello add .
-dsh --profile hello --dump-config | grep dsh-plugin-template
-dsh --profile hello
-```
-
-A successful run includes this line in the Harness output:
+## Structure
 
 ```text
-[dsh-plugin-template] hello world
+package.json           # dsh.bundle + dsh.client manifests, scripts, peer deps
+cordis.patch.yml       # mounts the host plugin row into a profile
+dsh.plugin.json        # dsh.so registry manifest
+src/index.ts           # host entry: Config schema + Typert manifest registration
+src/runtime.ts         # host Remote service (TypertRemoteService)
+src/typert.ts          # Typert model manifest
+src/contract.ts        # strict wire contract shared by host and client
+src/types.ts           # shared host/client types
+src/client/index.tsx   # client entry: mounts Remote + registers the view slot
+src/client/remote.ts   # client Remote contribution + typed namespace
+src/client/locales.ts  # zh / en dictionaries
+src/client/view.tsx    # minimal React view
+src/client/styles.ts   # theme-token stylesheet
+tests/                 # vitest unit tests (contract + runtime)
+build.mjs              # esbuild dual build (host ESM + client CJS)
+.github/workflows/ci.yml
 ```
 
-For development, edit `src/index.ts`, run `pnpm run build`, then restart the profile. The generated `lib/` directory is included in the package so direct Git installs can load the built JavaScript entry.
+`package.json` is the only manifest Harness needs. `dsh.bundle.patch` makes the package an installable profile bundle; `dsh.client` declares the Web client bundle and the client packages it injects. The host entry is the ordinary Cordis `name`/`apply` export; the client entry is bundled to `lib/client.js` and loaded by the Web harness module loader.
 
-If you rename the package, keep these values in sync:
+## Requirements
 
-- `package.json` → `name`
-- `src/index.ts` → `name`
-- `cordis.patch.yml` → both `id` and `name`
+- Node.js `>= 22.19` (or `>= 24`)
+- pnpm `>= 9`
+- DeepSeek Harness `>=0.1.0-rc.6`
+
+## Install from a local checkout
+
+```sh
+pnpm install
+pnpm run build
+dsh plugin --profile web add .
+```
+
+Restart the Web Harness after rebuilding the plugin. A "Greet" tab appears in the session view ring showing `Hello, DSH`.
 
 Remove it with:
 
 ```sh
-dsh plugin --profile hello remove dsh-plugin-template
+dsh plugin --profile web remove dsh-plugin-template
 ```
 
-## The whole plugin
+## Install from Git
 
-```text
-package.json       # declares the dsh.bundle patch and built entry
-src/index.ts       # TypeScript Cordis plugin entry
-lib/index.js       # generated Harness entry
-cordis.patch.yml   # registers the package in a profile
-tsconfig.json      # TypeScript type-checking configuration
-pnpm-lock.yaml     # locked development dependencies
+```sh
+dsh plugin --profile web add github:you/dsh-plugin-template
 ```
 
-`package.json` is the only manifest Harness needs: `dsh.bundle.patch` makes the package an installable profile bundle. `cordis.patch.yml` inserts the plugin row, and `src/index.ts` is compiled to the ordinary Cordis `name`/`apply` entry point. This template uses TypeScript and `tsdown`, but intentionally has no React Client bundle, Remote contract, or test framework. Add those only when the plugin actually needs them.
+A Git install fetches sources, not built artifacts, so pnpm runs the `prepare` script to build `lib/`. pnpm ≥10 blocks that build until you allow it; on the first failed `add`, `dsh` prints the fix — copy the package key it shows into the profile's `pnpm-workspace.yaml`:
+
+```yaml
+allowBuilds:
+  dsh-plugin-template: true
+```
+
+then re-run the `add`. That allowance lets the package run code at install time, so only allow packages you trust (and pin a commit).
+
+## Development
+
+```sh
+pnpm run check
+```
+
+`check` runs `typecheck`, `lint`, `test`, and `build`. CI runs the same command after `pnpm install --frozen-lockfile`.
+
+Individual scripts:
+
+```sh
+pnpm run build      # esbuild dual bundle + declaration emit
+pnpm run typecheck  # tsc over src and tests
+pnpm run lint       # eslint
+pnpm run test       # vitest
+```
+
+## Renaming the package
+
+Keep these values in sync when you rename:
+
+- `package.json` → `name`, `exports`, `files`
+- `build.mjs` → the `__ModuleLoader__.load` id
+- `src/index.ts` → `name`
+- `src/client/remote.ts` → package id and the `TypertRemoteNamespace$…` hex of the service key
+- `src/client/locales.ts` → locale namespace key
+- `src/client/index.tsx` → slot id
+- `src/typert.ts` → `package`
+- `src/contract.ts` → invocation ids
+- `cordis.patch.yml` → `id` and `name`
+- `dsh.plugin.json` → `id`
 
 ## Discoverability
 
-Add the GitHub topic [`dsh-plugin`](https://github.com/topics/dsh-plugin) to your fork. The topic is repository metadata, not a file in the repository:
+Add the GitHub topic [`dsh-plugin`](https://github.com/topics/dsh-plugin) to your fork:
 
 ```sh
 gh api --method PUT repos/YOUR-USER/dsh-plugin-template/topics \

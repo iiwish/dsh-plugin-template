@@ -1,3 +1,13 @@
+# dsh-plugin-template bundle: mount the host plugin under its package name.
+#
+# Optional: override the Config defaults from src/index.ts by adding a `config`
+# block, e.g.
+#   - insert:
+#       - id: dsh-plugin-template
+#         name: dsh-plugin-template
+#         config:
+#           greeting: Hi
+#           excited: true
 - insert:
     - id: dsh-plugin-template
       name: dsh-plugin-template

@@ -1,0 +1,8 @@
+{
+  "id": "dsh-plugin-template",
+  "version": "0.1.0",
+  "main": "lib/index.js",
+  "description": "Dual-side (host + client) DeepSeek Harness plugin template.",
+  "engines": { "dsh": ">=0.1.0-rc.6" },
+  "contributes": { "tools": [], "skills": [] }
+}
